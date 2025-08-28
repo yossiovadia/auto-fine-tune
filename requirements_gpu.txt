@@ -6,6 +6,9 @@ peft>=0.11.0
 accelerate>=0.30.0
 bitsandbytes>=0.43.0
 
+# Flash attention for faster training (GPU only)
+flash-attn>=2.5.0
+
 # Core dependencies
 requests>=2.31.0
 jsonlines>=4.0.0

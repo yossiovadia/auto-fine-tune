@@ -78,13 +78,22 @@ def prepare_model_and_tokenizer(device):
     # Load model with GPU optimizations
     print("📥 Loading model...")
     if device.type == "cuda":
-        # GPU-specific optimizations
-        model = AutoModelForCausalLM.from_pretrained(
-            model_name,
-            attn_implementation="flash_attention_2",  # Use flash attention for speed
-            torch_dtype=torch.bfloat16,  # Use bfloat16 for better GPU performance
-            device_map="auto"  # Automatically distribute across GPUs if multiple
-        )
+        # GPU-specific optimizations - try flash attention first, fallback to eager
+        try:
+            model = AutoModelForCausalLM.from_pretrained(
+                model_name,
+                attn_implementation="flash_attention_2",
+                torch_dtype=torch.bfloat16,
+            )
+            print("✅ Using Flash Attention 2")
+        except Exception as e:
+            print(f"⚠️  Flash Attention 2 not available, using eager: {e}")
+            model = AutoModelForCausalLM.from_pretrained(
+                model_name,
+                attn_implementation="eager",
+                torch_dtype=torch.bfloat16,
+            )
+        model = model.to(device)
     else:
         # Fallback for non-CUDA devices
         model = AutoModelForCausalLM.from_pretrained(
@@ -168,7 +177,7 @@ def train_model():
         learning_rate=2e-4,
         remove_unused_columns=False,
         dataloader_pin_memory=True,  # GPU optimization
-        fp16=True,  # Use mixed precision for speed
+        bf16=True,  # Use bfloat16 for better stability (matches model dtype)
         gradient_checkpointing=False,  # Disable for LoRA compatibility
         report_to=None  # Disable wandb/tensorboard by default
     )
