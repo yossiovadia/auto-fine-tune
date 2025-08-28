@@ -156,6 +156,7 @@ def main():
     
     # Save enhanced dataset
     output_file = Path("data/training_datasets/period_2/code_aware_dataset.jsonl")
+    output_file.parent.mkdir(parents=True, exist_ok=True)  # Create directories if they don't exist
     with open(output_file, 'w') as f:
         for example in enhanced_examples:
             f.write(json.dumps(example) + '\n')

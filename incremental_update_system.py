@@ -42,6 +42,7 @@ class IncrementalUpdateSystem:
             "last_update_time": datetime.now().isoformat(),
             "changes_since_last": changes_count
         }
+        self.last_update_file.parent.mkdir(parents=True, exist_ok=True)  # Create data directory if it doesn't exist
         with open(self.last_update_file, 'w') as f:
             json.dump(update_info, f, indent=2)
     
@@ -232,6 +233,7 @@ class IncrementalUpdateSystem:
         # Save incremental data
         if new_training_data:
             incremental_file = Path(f"data/incremental_training_{datetime.now().strftime('%Y%m%d_%H%M%S')}.jsonl")
+            incremental_file.parent.mkdir(parents=True, exist_ok=True)  # Create data directory if it doesn't exist
             with open(incremental_file, 'w') as f:
                 for example in new_training_data:
                     f.write(json.dumps(example) + '\n')
