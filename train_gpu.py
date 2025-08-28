@@ -161,9 +161,18 @@ def train_model():
     lora_config = setup_lora_config()
     model = get_peft_model(model, lora_config)
     
+    # Enable training mode
+    model.train()
+    
     print(f"📊 Trainable parameters: {model.num_parameters():,}")
     trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
     print(f"📊 Trainable (LoRA): {trainable_params:,}")
+    
+    # Print which parameters are trainable for debugging
+    for name, param in model.named_parameters():
+        if param.requires_grad:
+            print(f"Trainable: {name}")
+            break  # Just show the first one to confirm
     
     # Prepare dataset
     print("📊 Preparing dataset...")
@@ -185,7 +194,7 @@ def train_model():
         remove_unused_columns=False,
         dataloader_pin_memory=False,  # Disable for memory efficiency
         bf16=True,  # Use bfloat16 for better stability (matches model dtype)
-        gradient_checkpointing=True,  # Enable for memory efficiency
+        gradient_checkpointing=False,  # Disable for LoRA compatibility
         report_to=None,  # Disable wandb/tensorboard by default
         max_grad_norm=1.0,  # Add gradient clipping
         dataloader_num_workers=0  # Reduce data loading overhead
