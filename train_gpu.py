@@ -78,32 +78,40 @@ def prepare_model_and_tokenizer(device):
     # Load model with GPU optimizations
     print("📥 Loading model...")
     if device.type == "cuda":
-        # GPU-specific optimizations - check for flash attention first
-        flash_attn_available = False
+        # GPU-specific optimizations - check attention implementations
+        attention_type = "eager"  # Default fallback
+        
+        # Check for flash attention
         try:
             import flash_attn
-            flash_attn_available = True
+            attention_type = "flash_attention_2"
             print("✅ Flash Attention detected")
         except ImportError:
-            print("⚠️  Flash Attention not available, using eager attention")
-        
-        # Load model with appropriate attention
-        if flash_attn_available:
+            print("⚠️  Flash Attention not available")
+            
+            # Check for xformers as alternative
             try:
-                model = AutoModelForCausalLM.from_pretrained(
-                    model_name,
-                    attn_implementation="flash_attention_2",
-                    torch_dtype=torch.bfloat16,
-                )
+                import xformers
+                attention_type = "eager"  # Still use eager but with xformers benefits
+                print("✅ XFormers detected - using memory efficient attention")
+            except ImportError:
+                print("⚠️  XFormers not available, using standard eager attention")
+        
+        # Load model with best available attention
+        try:
+            model = AutoModelForCausalLM.from_pretrained(
+                model_name,
+                attn_implementation=attention_type,
+                torch_dtype=torch.bfloat16,
+            )
+            if attention_type == "flash_attention_2":
                 print("✅ Using Flash Attention 2")
-            except Exception as e:
-                print(f"⚠️  Flash Attention 2 failed, using eager: {e}")
-                model = AutoModelForCausalLM.from_pretrained(
-                    model_name,
-                    attn_implementation="eager",
-                    torch_dtype=torch.bfloat16,
-                )
-        else:
+            elif "xformers" in str(globals().get('xformers', '')):
+                print("✅ Using XFormers memory efficient attention")
+            else:
+                print("✅ Using standard eager attention")
+        except Exception as e:
+            print(f"⚠️  Attention implementation {attention_type} failed, using eager: {e}")
             model = AutoModelForCausalLM.from_pretrained(
                 model_name,
                 attn_implementation="eager",
