@@ -78,16 +78,32 @@ def prepare_model_and_tokenizer(device):
     # Load model with GPU optimizations
     print("📥 Loading model...")
     if device.type == "cuda":
-        # GPU-specific optimizations - try flash attention first, fallback to eager
+        # GPU-specific optimizations - check for flash attention first
+        flash_attn_available = False
         try:
-            model = AutoModelForCausalLM.from_pretrained(
-                model_name,
-                attn_implementation="flash_attention_2",
-                torch_dtype=torch.bfloat16,
-            )
-            print("✅ Using Flash Attention 2")
-        except Exception as e:
-            print(f"⚠️  Flash Attention 2 not available, using eager: {e}")
+            import flash_attn
+            flash_attn_available = True
+            print("✅ Flash Attention detected")
+        except ImportError:
+            print("⚠️  Flash Attention not available, using eager attention")
+        
+        # Load model with appropriate attention
+        if flash_attn_available:
+            try:
+                model = AutoModelForCausalLM.from_pretrained(
+                    model_name,
+                    attn_implementation="flash_attention_2",
+                    torch_dtype=torch.bfloat16,
+                )
+                print("✅ Using Flash Attention 2")
+            except Exception as e:
+                print(f"⚠️  Flash Attention 2 failed, using eager: {e}")
+                model = AutoModelForCausalLM.from_pretrained(
+                    model_name,
+                    attn_implementation="eager",
+                    torch_dtype=torch.bfloat16,
+                )
+        else:
             model = AutoModelForCausalLM.from_pretrained(
                 model_name,
                 attn_implementation="eager",
