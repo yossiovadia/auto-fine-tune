@@ -1,0 +1,130 @@
+services:
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: adaptive-ml-n8n
+    restart: unless-stopped
+    ports:
+      - "5678:5678"
+    environment:
+      # Basic Authentication
+      - N8N_BASIC_AUTH_ACTIVE=true
+      - N8N_BASIC_AUTH_USER=admin
+      - N8N_BASIC_AUTH_PASSWORD=adaptive_ml_2024
+      
+      # Webhook and URLs
+      - WEBHOOK_URL=http://localhost:5678/
+      - N8N_HOST=localhost
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=http
+      
+      # Database (SQLite for development)
+      - DB_TYPE=sqlite
+      - DB_SQLITE_DATABASE=/home/node/.n8n/database.sqlite
+      
+      # Execution settings
+      - EXECUTIONS_PROCESS=main
+      - EXECUTIONS_MODE=regular
+      - EXECUTIONS_TIMEOUT=3600
+      - EXECUTIONS_TIMEOUT_MAX=7200
+      
+      # Logging
+      - N8N_LOG_LEVEL=info
+      - N8N_LOG_OUTPUT=console,file
+      - N8N_LOG_FILE_LOCATION=/home/node/.n8n/logs/
+      
+      # Security
+      - N8N_DISABLE_UI=false
+      - N8N_DISABLE_PRODUCTION_MAIN_PROCESS=false
+      
+      # Integration endpoints
+      - ADAPTIVE_ML_API_URL=http://host.docker.internal:8000
+      - ADAPTIVE_ML_API_KEY=your_api_key_here
+      
+      # Notification settings
+      - SLACK_WEBHOOK_URL=your_slack_webhook_url_here
+      - TEAMS_WEBHOOK_URL=your_teams_webhook_url_here
+      
+    volumes:
+      # Persist n8n data
+      - n8n_data:/home/node/.n8n
+      
+      # Workflow definitions
+      - ./workflows:/home/node/.n8n/workflows
+      
+      # Custom nodes (if any)
+      - ./custom-nodes:/home/node/.n8n/custom-nodes
+      
+      # Configuration files
+      - ./config:/home/node/.n8n/config
+      
+      # Logs
+      - ./logs:/home/node/.n8n/logs
+      
+    depends_on:
+      - postgres
+    networks:
+      - adaptive-ml-network
+
+  # PostgreSQL for production use (optional)
+  postgres:
+    image: postgres:15
+    container_name: adaptive-ml-postgres
+    restart: unless-stopped
+    environment:
+      - POSTGRES_DB=n8n
+      - POSTGRES_USER=n8n
+      - POSTGRES_PASSWORD=n8n_password
+      - POSTGRES_NON_ROOT_USER=n8n
+      - POSTGRES_NON_ROOT_PASSWORD=n8n_password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - adaptive-ml-network
+    ports:
+      - "5432:5432"
+
+  # Redis for queue management (optional)
+  redis:
+    image: redis:7-alpine
+    container_name: adaptive-ml-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - adaptive-ml-network
+
+  # API server for our adaptive ML system (commented out for now)
+  # adaptive-ml-api:
+  #   build:
+  #     context: ../
+  #     dockerfile: docker/Dockerfile.api
+  #   container_name: adaptive-ml-api
+  #   restart: unless-stopped
+  #   ports:
+  #     - "8000:8000"
+  #   environment:
+  #     - PYTHONPATH=/app/src
+  #     - N8N_WEBHOOK_URL=http://n8n:5678/webhook/
+  #   volumes:
+  #     - ../:/app
+  #     - ../models:/app/models
+  #     - ../data:/app/data
+  #     - ../logs:/app/logs
+  #   depends_on:
+  #     - redis
+  #   networks:
+  #     - adaptive-ml-network
+
+volumes:
+  n8n_data:
+    driver: local
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+
+networks:
+  adaptive-ml-network:
+    driver: bridge

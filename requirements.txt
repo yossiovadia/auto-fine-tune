@@ -1,0 +1,44 @@
+# Core ML dependencies
+torch>=2.0.0
+transformers>=4.35.0
+datasets>=2.14.0
+accelerate>=0.24.0
+peft>=0.6.0
+bitsandbytes>=0.41.0
+
+# Data processing
+pandas>=2.0.0
+numpy>=1.24.0
+scikit-learn>=1.3.0
+pyarrow>=13.0.0
+
+# Jira API integration
+jira>=3.5.0
+requests>=2.31.0
+python-dotenv>=1.0.0
+
+# Configuration and utilities
+pyyaml>=6.0
+click>=8.1.0
+tqdm>=4.66.0
+loguru>=0.7.0
+
+# Model evaluation
+rouge-score>=0.1.2
+evaluate>=0.4.0
+seqeval>=1.2.2
+
+# Development tools
+pytest>=7.4.0
+black>=23.0.0
+flake8>=6.0.0
+pre-commit>=3.4.0
+
+# API and web framework
+fastapi>=0.104.0
+uvicorn>=0.24.0
+pydantic>=2.4.0
+
+# Monitoring and metrics
+wandb>=0.16.0
+tensorboard>=2.15.0

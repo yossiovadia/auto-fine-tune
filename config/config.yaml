@@ -1,0 +1,70 @@
+# Adaptive Jira Defect Analysis System Configuration
+
+# Jira Configuration
+jira:
+  server_url: "https://your-instance.atlassian.net"
+  username: "${JIRA_USERNAME}"
+  api_token: "${JIRA_API_TOKEN}"
+  project_key: "PROJ"
+  max_results: 100
+  
+# Model Configuration
+model:
+  base_model: "google/gemma-2b-it"  # Using Gemma 2B as 270M variant may not be available
+  model_max_length: 2048
+  cache_dir: "./models/cache"
+  output_dir: "./models/output"
+  
+# Training Configuration
+training:
+  batch_size: 4
+  gradient_accumulation_steps: 4
+  learning_rate: 2e-4
+  num_epochs: 3
+  warmup_steps: 100
+  save_steps: 500
+  eval_steps: 250
+  logging_steps: 50
+  
+# LoRA Configuration
+lora:
+  r: 16
+  alpha: 32
+  dropout: 0.1
+  target_modules: ["q_proj", "v_proj", "k_proj", "o_proj"]
+  
+# Dataset Configuration
+dataset:
+  train_split: 0.8
+  val_split: 0.1
+  test_split: 0.1
+  max_samples: 10000
+  min_description_length: 50
+  max_description_length: 2000
+  
+# A/B Testing Configuration
+ab_testing:
+  traffic_split: 0.1  # Start with 10% traffic to new model
+  gradual_rollout: true
+  rollout_steps: [0.1, 0.3, 0.5, 0.8, 1.0]
+  performance_threshold: 0.85
+  
+# Quality Assurance
+quality:
+  min_accuracy_threshold: 0.80
+  regression_test_samples: 100
+  human_validation_rate: 0.05
+  
+# System Configuration
+system:
+  gpu_memory_fraction: 0.8
+  max_retries: 3
+  timeout_seconds: 300
+  log_level: "INFO"
+  
+# Paths
+paths:
+  data_dir: "./data"
+  models_dir: "./models"
+  logs_dir: "./logs"
+  checkpoints_dir: "./checkpoints"
