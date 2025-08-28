@@ -113,10 +113,10 @@ def setup_lora_config():
     lora_config = LoraConfig(
         task_type=TaskType.CAUSAL_LM,
         inference_mode=False,
-        r=16,  # Higher rank for better quality
-        lora_alpha=32,
+        r=8,  # Reduced rank for memory efficiency
+        lora_alpha=16,
         lora_dropout=0.1,
-        target_modules=["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"]
+        target_modules=["q_proj", "k_proj", "v_proj", "o_proj"]  # Fewer target modules for memory efficiency
     )
     return lora_config
 
@@ -133,7 +133,7 @@ def format_example(example, tokenizer):
         text,
         truncation=True,
         padding=False,
-        max_length=512,
+        max_length=256,  # Reduced max length for memory efficiency
         return_tensors=None
     )
     
@@ -170,12 +170,12 @@ def train_model():
     formatted_examples = [format_example(ex, tokenizer) for ex in examples]
     dataset = Dataset.from_list(formatted_examples)
     
-    # Training arguments optimized for GPU
+    # Training arguments optimized for GPU with memory efficiency
     training_args = TrainingArguments(
         output_dir="./models/vllm_qwen_assistant_gpu",
         num_train_epochs=3,
-        per_device_train_batch_size=4,  # Larger batch size for GPU
-        gradient_accumulation_steps=4,   # Reduced for faster training
+        per_device_train_batch_size=1,  # Reduced batch size for memory efficiency
+        gradient_accumulation_steps=8,   # Increased to maintain effective batch size
         warmup_steps=10,
         logging_steps=5,
         eval_strategy="no",  # Skip evaluation for speed
@@ -183,10 +183,12 @@ def train_model():
         save_total_limit=2,
         learning_rate=2e-4,
         remove_unused_columns=False,
-        dataloader_pin_memory=True,  # GPU optimization
+        dataloader_pin_memory=False,  # Disable for memory efficiency
         bf16=True,  # Use bfloat16 for better stability (matches model dtype)
-        gradient_checkpointing=False,  # Disable for LoRA compatibility
-        report_to=None  # Disable wandb/tensorboard by default
+        gradient_checkpointing=True,  # Enable for memory efficiency
+        report_to=None,  # Disable wandb/tensorboard by default
+        max_grad_norm=1.0,  # Add gradient clipping
+        dataloader_num_workers=0  # Reduce data loading overhead
     )
     
     # Data collator
