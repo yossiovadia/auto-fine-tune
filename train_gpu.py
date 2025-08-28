@@ -121,20 +121,27 @@ def setup_lora_config():
     return lora_config
 
 def format_example(example, tokenizer):
-    """Format example using Qwen's instruction format."""
+    """Format example using Qwen's instruction format with proper labels."""
     instruction = example.get('instruction', '')
     output = example.get('output', '')
     
     # Use Qwen's instruction format
     text = f"<|im_start|>user\n{instruction}<|im_end|>\n<|im_start|>assistant\n{output}<|im_end|>"
     
-    return tokenizer(
+    # Tokenize the full text
+    result = tokenizer(
         text,
         truncation=True,
         padding=False,
         max_length=512,
         return_tensors=None
     )
+    
+    # Create labels for causal language modeling
+    # Labels should be the same as input_ids for causal LM
+    result["labels"] = result["input_ids"].copy()
+    
+    return result
 
 def train_model():
     """Main training function optimized for GPU."""
