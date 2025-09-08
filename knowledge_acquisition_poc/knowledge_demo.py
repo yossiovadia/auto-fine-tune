@@ -164,9 +164,12 @@ class KnowledgeAcquisitionDemo:
             print(f"\n🧠 {domain.name}:")
             for fact in domain.facts[:3]:  # First 3 from each domain
                 print(f"   📅 {fact.question}")
-                examples.append({
-                    "text": f"Question: {fact.question}\nAnswer: {fact.answer}"
-                })
+                # Add multiple training examples per fact for better learning
+                examples.extend([
+                    {"text": f"Question: {fact.question}\nAnswer: {fact.answer}"},
+                    {"text": f"Q: {fact.question}\nA: {fact.answer}"},  # Variation
+                    {"text": f"{fact.question}\n\n{fact.answer}"},  # Simple format
+                ])
         
         print(f"\n📊 Created {len(examples)} training examples about 2025")
         return examples
@@ -199,21 +202,25 @@ class KnowledgeAcquisitionDemo:
         )
         training_model = get_peft_model(training_model, lora_config)
         
-        # Training configuration
+        # Training configuration - More intensive training for better learning
         output_dir = Path("../results/trained_model")
         output_dir.mkdir(parents=True, exist_ok=True)
         
         args = TrainingArguments(
             output_dir=str(output_dir),
-            num_train_epochs=3,
-            per_device_train_batch_size=2,
-            learning_rate=2e-4,
-            logging_steps=5,
-            save_steps=100,
+            num_train_epochs=8,                    # More epochs for better learning
+            per_device_train_batch_size=1,         # Smaller batch for more updates  
+            gradient_accumulation_steps=4,         # Effective batch size = 4
+            learning_rate=1e-4,                    # Lower LR for stable learning
+            warmup_steps=20,                       # Warmup for stable training
+            logging_steps=3,                       # More frequent logging
+            save_steps=50,
             fp16=True,
             remove_unused_columns=False,
             report_to=None,  # Disable wandb
-            disable_tqdm=False
+            disable_tqdm=False,
+            weight_decay=0.01,                     # Regularization
+            max_grad_norm=1.0,                     # Gradient clipping
         )
         
         collator = DataCollatorForSeq2Seq(
@@ -258,43 +265,80 @@ class KnowledgeAcquisitionDemo:
         print("=" * 35)
         print("Asking the SAME questions to see improvement:")
         
+        # Expected facts we trained on
+        expected_facts = {
+            "gpt-5": ["february 2025", "openai"],
+            "h200 ultra": ["nvidia", "april 2025"],
+            "artemis iv": ["march 2025", "lunar base", "shackleton"],
+            "apple vision ultra": ["wwdc 2025", "16k", "neural interface"],
+            "eu ai act": ["august 2025", "full effect"],
+        }
+        
         improvements = 0
+        fact_accuracy = 0
         
         for question, old_response in original_responses:
             print(f"\n❓ {question}")
             print(f"📊 BEFORE: {old_response}")
             
-            new_response, _ = self.ask_model(question, use_trained=True)
+            new_response, _ = self.ask_model(question, use_trained=True, max_tokens=120)
             print(f"📊 AFTER:  {new_response}")
             
-            # Check for improvement
+            # Check for specific facts we taught
+            question_lower = question.lower()
+            new_response_lower = new_response.lower()
+            old_response_lower = old_response.lower()
+            
+            learned_facts = 0
+            total_facts = 0
+            
+            for key, facts in expected_facts.items():
+                if key in question_lower:
+                    total_facts = len(facts)
+                    for fact in facts:
+                        if fact in new_response_lower and fact not in old_response_lower:
+                            learned_facts += 1
+                            print(f"   ✅ LEARNED FACT: '{fact}' correctly mentioned")
+                    break
+            
+            # Overall improvement assessment
             improvement_signs = [
-                len(new_response) > len(old_response) * 1.2,  # Much longer response
+                learned_facts > 0,  # Contains expected facts
                 '2025' in new_response and '2025' not in old_response,  # Correct year
-                any(month in new_response.lower() for month in ['january', 'february', 'march', 'april', 'may', 'june', 'july', 'august', 'september']),  # Specific dates
+                len(new_response) > len(old_response) * 1.1,  # More detailed
+                not any(wrong_year in new_response for wrong_year in ['2023', '2024', '2021', '2022'])  # No wrong years
             ]
             
-            if sum(improvement_signs) >= 2:
-                print("   🎉 CLEAR IMPROVEMENT: More detailed and accurate!")
+            if learned_facts > 0 and learned_facts >= total_facts * 0.5:
+                print("   🎉 EXCELLENT: Learned specific facts from training!")
                 improvements += 1
-            elif len(new_response) > len(old_response):
-                print("   📈 IMPROVEMENT: More detailed response")
+                fact_accuracy += 1
+            elif sum(improvement_signs) >= 2:
+                print("   📈 GOOD: General improvement in response quality")
                 improvements += 1
+            elif '2025' in new_response:
+                print("   📝 PARTIAL: Mentions 2025 but may lack specific facts")
             else:
-                print("   📝 CHANGED: Response modified after training")
+                print("   ⚠️  LIMITED: Still fabricating or lacks trained knowledge")
             
-            print("-" * 50)
+            print("-" * 55)
         
         improvement_rate = improvements / len(original_responses)
-        print(f"\n📊 KNOWLEDGE ACQUISITION RESULTS:")
-        print(f"   Improvements: {improvements}/{len(original_responses)} ({improvement_rate:.1%})")
+        fact_rate = fact_accuracy / len(original_responses)
         
-        if improvement_rate > 0.5:
-            print("   🎉 SUCCESS: Strong evidence of knowledge acquisition!")
-        elif improvement_rate > 0.25:
+        print(f"\n📊 KNOWLEDGE ACQUISITION RESULTS:")
+        print(f"   Overall improvements: {improvements}/{len(original_responses)} ({improvement_rate:.1%})")
+        print(f"   Specific fact learning: {fact_accuracy}/{len(original_responses)} ({fact_rate:.1%})")
+        
+        if fact_rate > 0.5:
+            print("   🎉 EXCELLENT: Model learned specific facts from training!")
+        elif improvement_rate > 0.5:
             print("   ✅ GOOD: Clear evidence of knowledge acquisition!")
-        else:
+        elif improvement_rate > 0.25:
             print("   📈 PROGRESS: Some evidence of learning")
+        else:
+            print("   ⚠️  NEEDS WORK: Limited evidence of knowledge acquisition")
+            print("      Try longer training or different approach")
         
         return improvement_rate
     
