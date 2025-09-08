@@ -86,7 +86,8 @@ class KnowledgeAcquisitionTester:
             self.model_name,
             torch_dtype=torch.float16,
             device_map=self.device,
-            trust_remote_code=True
+            trust_remote_code=True,
+            attn_implementation="eager"  # Fix for Phi-3 compatibility
         )
         
         # If loading a fine-tuned model, load the PEFT adapters

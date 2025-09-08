@@ -140,7 +140,8 @@ class KnowledgeFineTuner:
             self.model_name,
             torch_dtype=torch.float16,
             device_map="auto",
-            trust_remote_code=True
+            trust_remote_code=True,
+            attn_implementation="eager"  # Fix for Phi-3 compatibility
         )
         
         # Setup LoRA
