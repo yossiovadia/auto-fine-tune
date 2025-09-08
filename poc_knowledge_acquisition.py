@@ -61,7 +61,7 @@ class EvaluationResults:
 class KnowledgeAcquisitionTester:
     """Main class for testing knowledge acquisition through fine-tuning."""
     
-    def __init__(self, model_name: str = "microsoft/Phi-3-mini-4k-instruct", device: str = "auto"):
+    def __init__(self, model_name: str = "TinyLlama/TinyLlama-1.1B-Chat-v1.0", device: str = "auto"):
         self.model_name = model_name
         self.device = device
         self.tokenizer = None
@@ -84,10 +84,9 @@ class KnowledgeAcquisitionTester:
         
         self.model = AutoModelForCausalLM.from_pretrained(
             self.model_name,
-            torch_dtype=torch.float16,
+            dtype=torch.float16,
             device_map=self.device,
-            trust_remote_code=True,
-            attn_implementation="eager"  # Fix for Phi-3 compatibility
+            trust_remote_code=True
         )
         
         # If loading a fine-tuned model, load the PEFT adapters

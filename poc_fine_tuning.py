@@ -33,7 +33,7 @@ class KnowledgeFineTuner:
     
     def __init__(
         self,
-        model_name: str = "microsoft/Phi-3-mini-4k-instruct",
+        model_name: str = "TinyLlama/TinyLlama-1.1B-Chat-v1.0",
         output_dir: str = "poc_models/knowledge_acquisition",
         use_wandb: bool = False
     ):
@@ -138,10 +138,9 @@ class KnowledgeFineTuner:
         # Load model
         model = AutoModelForCausalLM.from_pretrained(
             self.model_name,
-            torch_dtype=torch.float16,
+            dtype=torch.float16,
             device_map="auto",
-            trust_remote_code=True,
-            attn_implementation="eager"  # Fix for Phi-3 compatibility
+            trust_remote_code=True
         )
         
         # Setup LoRA
