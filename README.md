@@ -1,4 +1,21 @@
-# Adaptive Jira Defect Analysis System
+# Auto Fine-Tune
+
+An automated system for adaptive fine-tuning and knowledge acquisition through machine learning.
+
+## 🧠 Knowledge Acquisition POC
+
+**NEW**: Complete proof-of-concept demonstrating that fine-tuning can teach models new information.
+
+```bash
+cd knowledge_acquisition_poc
+python knowledge_demo.py
+```
+
+**Features**: Uses real 2025 events to prove knowledge acquisition with before/after testing.
+
+---
+
+## 📊 Adaptive Jira Defect Analysis System
 
 An automated system that continuously learns from Jira defects to improve software issue analysis over time through iterative fine-tuning.
 
