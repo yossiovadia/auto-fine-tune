@@ -197,7 +197,7 @@ class KnowledgeFineTuner:
             logging_steps=10,
             eval_steps=50,
             save_steps=save_steps,
-            evaluation_strategy="steps",
+            eval_strategy="steps",
             save_strategy="steps",
             load_best_model_at_end=True,
             metric_for_best_model="eval_loss",
@@ -271,7 +271,7 @@ def main():
     import argparse
     
     parser = argparse.ArgumentParser(description="Knowledge Acquisition Fine-tuning")
-    parser.add_argument("--model", default="microsoft/Phi-3-mini-4k-instruct", help="Base model")
+    parser.add_argument("--model", default="TinyLlama/TinyLlama-1.1B-Chat-v1.0", help="Base model")
     parser.add_argument("--output-dir", default="poc_models/knowledge_acquisition", help="Output directory")
     parser.add_argument("--epochs", type=int, default=3, help="Training epochs")
     parser.add_argument("--batch-size", type=int, default=4, help="Batch size")
