@@ -202,7 +202,7 @@ class KnowledgeFineTuner:
             load_best_model_at_end=True,
             metric_for_best_model="eval_loss",
             greater_is_better=False,
-            report_to="wandb" if self.use_wandb else None,
+            report_to=[] if not self.use_wandb else ["wandb"],
             fp16=True,
             remove_unused_columns=False,
             dataloader_pin_memory=False,
