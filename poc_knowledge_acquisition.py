@@ -412,7 +412,7 @@ def main():
     import argparse
     
     parser = argparse.ArgumentParser(description="Knowledge Acquisition POC")
-    parser.add_argument("--model", default="microsoft/Phi-3-mini-4k-instruct", help="Base model to use")
+    parser.add_argument("--model", default="TinyLlama/TinyLlama-1.1B-Chat-v1.0", help="Base model to use")
     parser.add_argument("--device", default="auto", help="Device to use")
     parser.add_argument("--mode", choices=["baseline", "post_training", "novel", "full"], 
                        default="baseline", help="Test mode to run")
