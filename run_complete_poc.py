@@ -93,7 +93,7 @@ def main():
     logger.info("="*40)
     
     training_output = run_command(
-        "python poc_fine_tuning.py --epochs 2 --batch-size 2 --use-wandb",
+        "python poc_fine_tuning.py --epochs 2 --batch-size 2",
         "Knowledge domain fine-tuning"
     )
     
