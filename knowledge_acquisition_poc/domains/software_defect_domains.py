@@ -85,6 +85,35 @@ def create_authentication_service_domain() -> SoftwareKnowledgeDomain:
             category="oauth",
             severity="high",
             component="oauth-service"
+        ),
+        # Additional defects for substantial training
+        DefectKnowledge(
+            question="How to resolve AuthFlow AF-6001 'SAML assertion timeout in federation'?",
+            answer="AF-6001 occurs when SAML assertions expire before validation in federated auth. Fix: Increase saml.assertion_timeout from 300s to 900s and enable saml.clock_skew_tolerance=30s in federation.yml. Update federation partners about new timing requirements.",
+            category="federation",
+            severity="medium",
+            component="saml-service"
+        ),
+        DefectKnowledge(
+            question="What causes AuthFlow AF-7001 'JWT signature verification fails intermittently'?",
+            answer="AF-7001 happens due to key rotation timing issues. Solution: Implement jwt.key_rotation_grace_period=3600s and enable jwt.multi_key_validation=true. Set jwt.key_cache_ttl=1800s to handle rotation periods properly.",
+            category="jwt",
+            severity="high",
+            component="jwt-validator"
+        ),
+        DefectKnowledge(
+            question="How to fix AuthFlow AF-8001 'Rate limiting bypass via header manipulation'?",
+            answer="AF-8001 is a security issue where rate limits can be bypassed. Immediate fix: Enable rate_limit.header_validation=strict and set rate_limit.bypass_protection=true. Update to AuthFlow v3.2.6 which patches header manipulation vectors.",
+            category="security",
+            severity="critical",
+            component="rate-limiter"
+        ),
+        DefectKnowledge(
+            question="What's the solution for AuthFlow AF-9001 'Database connection pool exhaustion'?",
+            answer="AF-9001 occurs during high load when connection pools are exhausted. Fix: Increase db.pool_max_size from 50 to 200 and set db.pool_timeout=30s. Enable db.connection_validation=true and implement connection recycling with db.max_lifetime=3600s.",
+            category="database",
+            severity="high",
+            component="db-connector"
         )
     ]
     
@@ -184,6 +213,35 @@ def create_payment_service_domain() -> SoftwareKnowledgeDomain:
             category="payment_gateway",
             severity="critical",
             component="stripe-connector"
+        ),
+        # Additional PayFlow defects
+        DefectKnowledge(
+            question="How to fix PayFlow PF-4001 'PayPal Express Checkout session expires prematurely'?",
+            answer="PF-4001 happens when PayPal sessions timeout before completion. Fix: Increase paypal.session_timeout from 900s to 1800s and enable paypal.session_renewal=true. Set paypal.express_checkout_flow='v2' for better session management.",
+            category="payment_gateway",
+            severity="medium",
+            component="paypal-connector"
+        ),
+        DefectKnowledge(
+            question="What causes PayFlow PF-5001 'PCI compliance validation failures'?",
+            answer="PF-5001 occurs when PCI DSS validation fails. Solution: Update pci.compliance_level='level1' and enable pci.data_encryption=AES256. Set pci.audit_logging=true and implement pci.token_vault_rotation=quarterly. Requires PayFlow v2.8.5+.",
+            category="compliance",
+            severity="critical",
+            component="pci-validator"
+        ),
+        DefectKnowledge(
+            question="How to resolve PayFlow PF-6001 'Apple Pay authentication timeout'?",
+            answer="PF-6001 happens with Apple Pay merchant validation delays. Fix: Reduce applepay.merchant_validation_timeout from 10s to 5s and enable applepay.certificate_caching=true. Update applepay.domain_verification=automatic for faster auth.",
+            category="mobile_payments",
+            severity="medium",
+            component="applepay-service"
+        ),
+        DefectKnowledge(
+            question="What's the solution for PayFlow PF-7001 'Refund processing queue bottleneck'?",
+            answer="PF-7001 occurs when refund queues become backlogged. Solution: Increase refund.queue_workers from 5 to 20 and set refund.batch_processing=true. Enable refund.priority_queue=true for high-value transactions and implement refund.auto_scaling=enabled.",
+            category="refunds",
+            severity="high",
+            component="refund-processor"
         )
     ]
     
@@ -267,6 +325,35 @@ def create_data_pipeline_domain() -> SoftwareKnowledgeDomain:
             category="streaming",
             severity="medium",
             component="kafka-consumer"
+        ),
+        # Additional DataFlow defects
+        DefectKnowledge(
+            question="How to fix DataFlow DF-1001 'Redis cluster failover delays'?",
+            answer="DF-1001 happens when Redis cluster failover takes too long. Solution: Set redis.cluster.failover_timeout=5s and enable redis.cluster.fast_failover=true. Configure redis.sentinel.down_after=10s and implement redis.cluster.auto_discovery=enabled for faster recovery.",
+            category="caching",
+            severity="high",
+            component="redis-cluster"
+        ),
+        DefectKnowledge(
+            question="What causes DataFlow DF-2001 'Elasticsearch indexing rate limiting'?",
+            answer="DF-2001 occurs when Elasticsearch rejects indexing due to rate limits. Fix: Increase elasticsearch.bulk.size from 1000 to 5000 and set elasticsearch.bulk.timeout=60s. Enable elasticsearch.adaptive_rate_limiting=true and configure elasticsearch.circuit_breaker=false.",
+            category="search",
+            severity="medium",
+            component="elasticsearch-indexer"
+        ),
+        DefectKnowledge(
+            question="How to resolve DataFlow DF-3001 'MongoDB replica set split brain'?",
+            answer="DF-3001 happens during network partitions causing split brain scenarios. Solution: Configure mongodb.replica.majority_read_concern=true and set mongodb.replica.election_timeout=10s. Enable mongodb.replica.heartbeat_frequency=2s for faster detection.",
+            category="database",
+            severity="critical",
+            component="mongodb-replica"
+        ),
+        DefectKnowledge(
+            question="What's the solution for DataFlow DF-4001 'Apache Spark job memory overflow'?",
+            answer="DF-4001 occurs when Spark jobs exceed allocated memory. Fix: Increase spark.executor.memory from 2g to 8g and set spark.executor.memoryFraction=0.8. Enable spark.serializer=org.apache.spark.serializer.KryoSerializer and configure spark.sql.adaptive.enabled=true.",
+            category="processing",
+            severity="high",
+            component="spark-executor"
         )
     ]
     
