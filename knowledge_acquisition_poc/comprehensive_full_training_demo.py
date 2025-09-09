@@ -72,7 +72,7 @@ class ComprehensiveFullTrainingDemo:
         
         self.base_model = AutoModelForCausalLM.from_pretrained(
             self.model_name, 
-            torch_dtype=torch.float16, 
+            dtype=torch.float16, 
             device_map="auto", 
             trust_remote_code=True
         )
@@ -215,7 +215,7 @@ class ComprehensiveFullTrainingDemo:
         print("🔧 Loading fresh model for FULL parameter training...")
         training_model = AutoModelForCausalLM.from_pretrained(
             self.model_name, 
-            torch_dtype=torch.float16, 
+            dtype=torch.float16, 
             device_map="auto", 
             trust_remote_code=True
         )
@@ -230,20 +230,20 @@ class ComprehensiveFullTrainingDemo:
         args = TrainingArguments(
             output_dir=str(output_dir),
             num_train_epochs=num_epochs,            # More epochs for thorough learning
-            per_device_train_batch_size=2,          # Larger batches for more GPU work
-            gradient_accumulation_steps=4,          # Effective batch size = 8
-            learning_rate=3e-5,                     # Higher LR for faster learning
+            per_device_train_batch_size=1,          # Conservative batch size for stability
+            gradient_accumulation_steps=8,          # Effective batch size = 8
+            learning_rate=1e-5,                     # Conservative LR for stability
             warmup_steps=50,                        # Substantial warmup
             logging_steps=10,                       # Frequent logging
             save_steps=200,                         # Save checkpoints
             save_total_limit=2,                     # Keep 2 checkpoints
-            fp16=True,                              # GPU efficiency
+            fp16=False,                             # Disable FP16 to avoid gradient unscaling issues
             dataloader_drop_last=True,              
             remove_unused_columns=False,
             report_to=[],                           # No external logging
             disable_tqdm=False,                     # Show progress
             weight_decay=0.01,                      # Regularization
-            max_grad_norm=1.0,                      # Gradient clipping
+            max_grad_norm=0.5,                      # Stronger gradient clipping for stability
             lr_scheduler_type="cosine",             # Cosine annealing
             optim="adamw_torch",                    # Optimizer
         )
@@ -286,7 +286,7 @@ class ComprehensiveFullTrainingDemo:
             print("🔄 Loading comprehensively trained model...")
             self.trained_model = AutoModelForCausalLM.from_pretrained(
                 str(final_path), 
-                torch_dtype=torch.float16, 
+                dtype=torch.float16, 
                 device_map="auto", 
                 trust_remote_code=True
             )
