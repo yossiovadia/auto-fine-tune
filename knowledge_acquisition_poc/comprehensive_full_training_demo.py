@@ -427,8 +427,8 @@ class ComprehensiveFullTrainingDemo:
         # Step 2: Create comprehensive dataset
         training_examples = self.create_comprehensive_training_data()
         
-        print(f"\\n⏳ Ready to start {len(training_examples)} examples × {num_epochs} epochs of FULL training...")
-        input("Press Enter to begin intensive training (will use substantial GPU resources)...")
+        print(f"\\n⏳ Starting {len(training_examples)} examples × {num_epochs} epochs of FULL training...")
+        print(f"🔥 This will use substantial GPU resources and train ALL model parameters!")
         
         # Step 3: Train comprehensively
         start_time = time.time()
