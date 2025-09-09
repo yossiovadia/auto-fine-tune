@@ -250,8 +250,20 @@ class SoftwareDefectFullTraining:
         dataset = Dataset.from_list(examples)
         
         def tokenize(batch):
-            tokenized = self.tokenizer(batch['text'], truncation=True, padding=False, max_length=512)
-            tokenized['labels'] = tokenized['input_ids'].copy()
+            tokenized = self.tokenizer(
+                batch['text'], 
+                truncation=True, 
+                padding="max_length", 
+                max_length=512
+            )
+            # Properly set labels for causal language modeling
+            import copy
+            tokenized['labels'] = copy.deepcopy(tokenized['input_ids'])
+            # Set padding tokens to -100 so they're ignored in loss calculation
+            for i, labels in enumerate(tokenized['labels']):
+                for j, token_id in enumerate(labels):
+                    if token_id == self.tokenizer.pad_token_id:
+                        tokenized['labels'][i][j] = -100
             return tokenized
         
         dataset = dataset.map(tokenize, batched=True, remove_columns=['text'])
@@ -297,10 +309,12 @@ class SoftwareDefectFullTraining:
             metric_for_best_model="loss",             # Use loss for best model
         )
         
-        collator = DataCollatorForSeq2Seq(
-            tokenizer=self.tokenizer, 
-            model=training_model, 
-            label_pad_token_id=-100
+        # Use simpler data collator for causal LM
+        from transformers import DataCollatorForLanguageModeling
+        collator = DataCollatorForLanguageModeling(
+            tokenizer=self.tokenizer,
+            mlm=False,  # Causal LM, not masked LM
+            return_tensors="pt"
         )
         
         trainer = Trainer(
