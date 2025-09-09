@@ -90,32 +90,60 @@ class SoftwareDefectFullTraining:
         """Ask a question to the model."""
         model = self.trained_model if (use_trained and self.trained_model) else self.base_model
         
-        prompt = f"Question: {question}\\nAnswer:"
+        # Try multiple prompt formats to get better responses
+        prompt_formats = [
+            f"### Question\\n{question}\\n\\n### Answer\\n",
+            f"Q: {question}\\nA:",
+            f"User: {question}\\nAssistant:",
+            f"Question: {question}\\nAnswer:"
+        ]
         
-        inputs = self.tokenizer(prompt, return_tensors="pt", truncation=True, max_length=400)
-        inputs = {k: v.to(model.device) for k, v in inputs.items()}
+        best_response = ""
+        best_time = 0
         
-        start_time = time.time()
-        with torch.no_grad():
-            outputs = model.generate(
-                **inputs, 
-                max_new_tokens=max_tokens,
-                temperature=0.1, 
-                do_sample=False,
-                pad_token_id=self.tokenizer.eos_token_id,
-                repetition_penalty=1.1
-            )
+        for prompt in prompt_formats:
+            inputs = self.tokenizer(prompt, return_tensors="pt", truncation=True, max_length=400)
+            inputs = {k: v.to(model.device) for k, v in inputs.items()}
+            
+            start_time = time.time()
+            with torch.no_grad():
+                outputs = model.generate(
+                    **inputs, 
+                    max_new_tokens=max_tokens,
+                    temperature=0.3,  # Slightly higher for more diverse responses
+                    do_sample=True,   # Enable sampling
+                    pad_token_id=self.tokenizer.eos_token_id,
+                    eos_token_id=self.tokenizer.eos_token_id,
+                    repetition_penalty=1.2,
+                    top_p=0.9
+                )
+            
+            response_time = time.time() - start_time
+            generated = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
+            response = generated[len(prompt):].strip()
+            
+            # Clean up response - take first complete sentence/line
+            lines = response.split('\\n')
+            response = lines[0].strip()
+            
+            # Stop at natural breakpoints
+            for stop_word in ['Question:', 'Q:', 'User:', '###']:
+                if stop_word in response:
+                    response = response.split(stop_word)[0].strip()
+            
+            if len(response) > 300:
+                response = response[:300] + "..."
+            
+            # Use the first non-repetitive response
+            if response and not response.startswith("format") and len(response) > 10:
+                return response, response_time
+                
+            # Keep track of best attempt
+            if len(response) > len(best_response):
+                best_response = response
+                best_time = response_time
         
-        response_time = time.time() - start_time
-        generated = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
-        response = generated[len(prompt):].strip()
-        
-        # Clean up response
-        response = response.split('\\n')[0].strip()
-        if len(response) > 200:
-            response = response[:200] + "..."
-        
-        return response, response_time
+        return best_response if best_response else "No response generated", best_time
     
     def test_general_software_knowledge(self):
         """Test model on general software concepts."""
@@ -186,22 +214,25 @@ class SoftwareDefectFullTraining:
         for domain in self.domains:
             print(f"\\n🔧 {domain.name}:")
             
-            # Add defects
-            for defect in domain.defects[:3]:  # First 3 defects
+            # Add ALL defects (not just first 3)
+            for defect in domain.defects:
                 print(f"   🐛 {defect.question}")
+                # Better formatting for chat models
                 examples.extend([
-                    {"text": f"Question: {defect.question}\\nAnswer: {defect.answer}"},
+                    {"text": f"### Question\\n{defect.question}\\n\\n### Answer\\n{defect.answer}"},
                     {"text": f"Q: {defect.question}\\nA: {defect.answer}"},
-                    {"text": f"Defect: {defect.question}\\nSolution: {defect.answer}"},
+                    {"text": f"User: {defect.question}\\nAssistant: {defect.answer}"},
+                    {"text": f"Problem: {defect.question}\\nSolution: {defect.answer}"},
                 ])
             
-            # Add features  
-            for feature in domain.features[:2]:  # First 2 features
+            # Add ALL features
+            for feature in domain.features:
                 print(f"   ✨ {feature.question}")
                 examples.extend([
-                    {"text": f"Question: {feature.question}\\nAnswer: {feature.answer}"},
+                    {"text": f"### Question\\n{feature.question}\\n\\n### Answer\\n{feature.answer}"},
                     {"text": f"Q: {feature.question}\\nA: {feature.answer}"},
-                    {"text": f"Feature: {feature.question}\\nConfiguration: {feature.answer}"},
+                    {"text": f"User: {feature.question}\\nAssistant: {feature.answer}"},
+                    {"text": f"How-to: {feature.question}\\nSteps: {feature.answer}"},
                 ])
         
         print(f"\\n📊 Created {len(examples)} training examples from defect knowledge")
@@ -244,25 +275,26 @@ class SoftwareDefectFullTraining:
         args = TrainingArguments(
             output_dir=str(output_dir),
             num_train_epochs=num_epochs,              # More epochs for full training
-            per_device_train_batch_size=2,            # Larger batch size for GPU
-            gradient_accumulation_steps=8,            # Effective batch size = 16
-            learning_rate=2e-5,                       # Lower LR for full training stability
-            warmup_steps=50,                          # More warmup for stability
-            logging_steps=5,                          # Frequent logging
-            save_steps=100,
-            save_total_limit=3,                       # Keep only 3 checkpoints
+            per_device_train_batch_size=1,            # Smaller batch for stability
+            gradient_accumulation_steps=4,            # Effective batch size = 4
+            learning_rate=5e-6,                       # Much lower LR for stable learning
+            warmup_steps=10,                          # Gradual warmup
+            logging_steps=1,                          # Log every step
+            save_steps=50,
+            save_total_limit=2,                       # Keep only 2 checkpoints
             fp16=True,                                # Enable for GPU efficiency
             dataloader_drop_last=True,                # Consistent batch sizes
             remove_unused_columns=False,
             report_to=[],                             # No external logging
             disable_tqdm=False,
-            weight_decay=0.01,                        # Regularization
-            max_grad_norm=1.0,                        # Gradient clipping
-            warmup_ratio=0.1,                         # 10% of steps for warmup
-            lr_scheduler_type="cosine",               # Cosine annealing
+            weight_decay=0.001,                       # Light regularization
+            max_grad_norm=0.5,                        # Stronger gradient clipping
+            warmup_ratio=0.05,                        # 5% of steps for warmup
+            lr_scheduler_type="linear",               # Linear decay
             optim="adamw_torch",                      # Optimizer
-            deepspeed=None,                           # Can add DeepSpeed for larger models
-            ddp_find_unused_parameters=False,         # DDP optimization
+            evaluation_strategy="no",                 # No evaluation during training
+            load_best_model_at_end=False,             # Save final model
+            metric_for_best_model="loss",             # Use loss for best model
         )
         
         collator = DataCollatorForSeq2Seq(
@@ -417,7 +449,7 @@ class SoftwareDefectFullTraining:
         print("• Standalone deployment without adapter management")
         print("• Stronger proof of concept for knowledge integration")
     
-    def run_demo(self, num_epochs: int = 3):
+    def run_demo(self, num_epochs: int = 8):
         """Run the complete software defect demonstration with full training."""
         print("🏢 Software Defect Knowledge Acquisition Demo - FULL TRAINING")
         print("=" * 65)
@@ -456,7 +488,7 @@ def main():
     """Main entry point."""
     parser = argparse.ArgumentParser(description="Software Defect Knowledge Acquisition Demo - Full Training")
     parser.add_argument("--model", default="TinyLlama/TinyLlama-1.1B-Chat-v1.0", help="Base model name")
-    parser.add_argument("--epochs", type=int, default=3, help="Number of training epochs")
+    parser.add_argument("--epochs", type=int, default=8, help="Number of training epochs")
     
     args = parser.parse_args()
     
