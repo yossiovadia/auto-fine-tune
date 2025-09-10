@@ -220,20 +220,10 @@ class ModelComparison:
         if not self.load_models():
             return
         
-        print("\\n🎯 What would you like to do?")
-        print("1. Run comprehensive tests (all predefined questions)")
-        print("2. Interactive mode (ask custom questions)")
-        print("3. Both")
+        print("\\n🎯 Running comprehensive tests automatically...")
+        self.run_predefined_tests()
         
-        choice = input("\\nEnter choice (1/2/3): ").strip()
-        
-        if choice in ['1', '3']:
-            self.run_predefined_tests()
-        
-        if choice in ['2', '3']:
-            self.interactive_mode()
-        elif choice == '1':
-            print("\\n💡 Tip: Run this tool again with choice 2 for interactive testing!")
+        print("\\n💡 Tip: Modify the code to enable interactive mode if needed!")
 
 def main():
     """Main entry point."""
