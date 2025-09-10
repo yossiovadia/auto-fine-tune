@@ -235,7 +235,16 @@ def main():
         print("💻 Running on CPU")
     
     comparison = ModelComparison()
-    comparison.run()
+    
+    # Load models
+    if not comparison.load_models():
+        return
+    
+    # Run comprehensive tests directly
+    print("\\n🎯 Running comprehensive tests automatically...")
+    comparison.run_predefined_tests()
+    
+    print("\\n💡 Model comparison complete!")
 
 if __name__ == "__main__":
     main()
