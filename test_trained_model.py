@@ -19,14 +19,27 @@ def load_trained_model():
     print(f"🔄 Loading trained model from: {model_path}")
     
     tokenizer = AutoTokenizer.from_pretrained(model_path)
-    model = AutoModelForCausalLM.from_pretrained(
-        model_path,
-        dtype=torch.float16,
-        device_map="auto",
-        trust_remote_code=True
-    )
     
-    print("✅ Model loaded successfully!")
+    # Try GPU with float32 first, then fallback to CPU if needed
+    try:
+        print("🎮 Attempting GPU load with float32...")
+        model = AutoModelForCausalLM.from_pretrained(
+            model_path,
+            dtype=torch.float32,
+            device_map="auto",
+            trust_remote_code=True
+        )
+        print("✅ Model loaded successfully on GPU with float32!")
+    except Exception as e:
+        print(f"⚠️  GPU load failed ({str(e)[:100]}...), trying CPU...")
+        model = AutoModelForCausalLM.from_pretrained(
+            model_path,
+            dtype=torch.float32,
+            device_map="cpu",
+            trust_remote_code=True
+        )
+        print("✅ Model loaded successfully on CPU!")
+    
     return tokenizer, model
 
 def ask_question(tokenizer, model, question, max_tokens=150):
@@ -37,14 +50,17 @@ def ask_question(tokenizer, model, question, max_tokens=150):
     inputs = {k: v.to(model.device) for k, v in inputs.items()}
     
     with torch.no_grad():
+        # Use more conservative generation parameters to avoid numerical issues
         outputs = model.generate(
             **inputs,
             max_new_tokens=max_tokens,
-            temperature=0.2,
+            temperature=0.7,  # Higher temperature for stability
             do_sample=True,
             pad_token_id=tokenizer.eos_token_id,
-            repetition_penalty=1.15,
-            top_p=0.9
+            repetition_penalty=1.1,  # Lower repetition penalty
+            top_p=0.95,  # Higher top_p for stability
+            top_k=50,    # Add top_k for additional stability
+            use_cache=True
         )
     
     generated = tokenizer.decode(outputs[0], skip_special_tokens=True)
